@@ -6,7 +6,12 @@ import { userRepository } from '@/server/repositories/user.repository';
 import { subscriptionRepository } from '@/server/repositories/subscription.repository';
 
 type UserRepo = typeof userRepository;
-type SubscriptionRepo = typeof subscriptionRepository;
+// Pick only what this service uses: subscriptionRepository has grown (AMP-5)
+// to cover transfer/create/etc., but userService only ever needs the
+// cascade-cancel helper, and narrowing here keeps the AMP-4 test fake
+// (which only stubs `cancelAllForUser`) valid without padding it with unused
+// methods.
+type SubscriptionRepo = Pick<typeof subscriptionRepository, 'cancelAllForUser'>;
 
 // Injectable so unit tests never touch the real Prisma client: the default
 // wraps the actual `prisma.$transaction` batch API, while tests can pass a
