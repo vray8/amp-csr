@@ -104,7 +104,6 @@ async function main() {
   for (const def of PLAN_DEFS) {
     plans.push(await prisma.plan.create({ data: def }));
   }
-  const planByName = Object.fromEntries(plans.map((p) => [p.name, p]));
 
   // -- Users --------------------------------------------------------------
   const USER_COUNT = 25;
@@ -181,7 +180,7 @@ async function main() {
     const accountStatus = user.status as AccountStatus;
 
     // Vehicle assignment + subscription status per scenario.
-    let vehicle = primaryVehicleByUser.get(i)!;
+    const vehicle = primaryVehicleByUser.get(i)!;
     let subStatus: SubscriptionStatus = 'ACTIVE';
     let cancelledAt: Date | null = null;
     let nextBillingDate: Date | null = monthsBefore(ANCHOR, -1); // ~1 month from anchor
