@@ -59,8 +59,8 @@ export default function UserDetailPage() {
         <OverdueBanner user={user} />
         <UserDetailHeader user={user} />
         <AccountInfoCard user={user} />
-        <SubscriptionsSection subscriptions={user.subscriptions} />
-        <VehiclesSection vehicles={user.vehicles} />
+        <SubscriptionsSection user={user} />
+        <VehiclesSection user={user} />
         <PurchaseHistoryTable userId={user.id} />
       </Stack>
     </Container>
