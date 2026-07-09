@@ -34,6 +34,14 @@ const detailInclude = {
     },
     orderBy: { createdAt: 'asc' as const },
   },
+  // Latest FAILED purchase only, so the AMP-7 OVERDUE banner can render
+  // straight from the detail payload without waiting on the separate
+  // paginated purchases query.
+  purchases: {
+    where: { status: 'FAILED' as const },
+    orderBy: { createdAt: 'desc' as const },
+    take: 1,
+  },
 } satisfies Prisma.UserInclude;
 
 export interface ListUsersParams {
