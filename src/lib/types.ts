@@ -14,9 +14,10 @@ export interface UserListItem {
   paymentMethodLast4: string | null;
   createdAt: string;
   updatedAt: string;
-  _count: {
-    subscriptions: number;
-  };
+  // Status of the user's current subscription (most recent), or null when the
+  // user has no subscriptions. Drives the users-table Status column; distinct
+  // from the account-level `status` above.
+  subscriptionStatus: SubscriptionStatus | null;
 }
 
 export interface UserListResult {
@@ -26,8 +27,9 @@ export interface UserListResult {
   pageSize: number;
 }
 
-// Account-status breakdown powering the dashboard stat strip
-// (`GET /api/users/stats`).
+// Customers bucketed by their current subscription's status, powering the
+// dashboard stat strip (`GET /api/users/stats`). `total` is the customer
+// count; the buckets exclude customers with no (or a PAUSED) subscription.
 export interface UserStats {
   total: number;
   active: number;

@@ -16,10 +16,10 @@ import { useHydrated } from '@/hooks/useHydrated';
 import type { UserStats } from '@/lib/types';
 import type { UserListQuery } from '@/lib/schemas/user.schema';
 
-type Status = NonNullable<UserListQuery['status']>;
+type SubscriptionStatus = NonNullable<UserListQuery['subscriptionStatus']>;
 
 interface Tile {
-  key: 'ALL' | Status;
+  key: 'ALL' | SubscriptionStatus;
   label: string;
   statKey: keyof UserStats;
   color: string;
@@ -34,14 +34,16 @@ const TILES: Tile[] = [
 ];
 
 export interface UsersStatsBarProps {
-  status: Status | undefined;
-  onStatusChange: (status: Status | undefined) => void;
+  subscriptionStatus: SubscriptionStatus | undefined;
+  onSubscriptionStatusChange: (status: SubscriptionStatus | undefined) => void;
 }
 
-// Dashboard summary strip for the users list. Each tile is a live filter:
-// clicking "Overdue" jumps the list to the accounts that can't get a wash,
-// and the active tile is highlighted so the current filter is obvious.
-export function UsersStatsBar({ status, onStatusChange }: UsersStatsBarProps) {
+// Dashboard summary strip for the users list, counting customers by the
+// status of their current subscription (not account status). Each tile is a
+// live filter: clicking "Overdue" jumps the list to the customers whose
+// subscription can't get a wash, and the active tile is highlighted so the
+// current filter is obvious.
+export function UsersStatsBar({ subscriptionStatus, onSubscriptionStatusChange }: UsersStatsBarProps) {
   const { data: stats, isPending } = useUserStats();
 
   // The QueryClient persists in memory on the client, so at hydration it may
@@ -52,16 +54,22 @@ export function UsersStatsBar({ status, onStatusChange }: UsersStatsBarProps) {
   const showValue = hydrated && !isPending && !!stats;
 
   return (
-    <Box
-      sx={{
-        display: 'grid',
-        gap: 1.5,
-        gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' },
-      }}
-    >
+    <Box>
+      <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+        Customers by subscription status
+      </Typography>
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 1.5,
+          gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' },
+        }}
+      >
       {TILES.map((tile) => {
-        const selected = (tile.key === 'ALL' && !status) || tile.key === status;
-        const handleClick = () => onStatusChange(tile.key === 'ALL' ? undefined : tile.key);
+        const selected =
+          (tile.key === 'ALL' && !subscriptionStatus) || tile.key === subscriptionStatus;
+        const handleClick = () =>
+          onSubscriptionStatusChange(tile.key === 'ALL' ? undefined : tile.key);
 
         return (
           <Card
@@ -106,6 +114,7 @@ export function UsersStatsBar({ status, onStatusChange }: UsersStatsBarProps) {
           </Card>
         );
       })}
+      </Box>
     </Box>
   );
 }

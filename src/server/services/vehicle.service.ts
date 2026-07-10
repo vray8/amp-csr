@@ -55,7 +55,15 @@ export function createVehicleService(
 
     const activeSub = await subscriptionRepo.findActiveByVehicle(id);
     if (activeSub) {
-      throw new ConflictError('Vehicle has a subscription — cancel or transfer it first');
+      throw new ConflictError('Vehicle has an active subscription — cancel or transfer it first');
+    }
+
+    // Cancelled subscriptions still hold the vehicleId FK, so deleting a
+    // vehicle with any subscription history would violate the constraint and
+    // surface as a 500. Block it with a clear 409 instead.
+    const subCount = await subscriptionRepo.countByVehicle(id);
+    if (subCount > 0) {
+      throw new ConflictError('Vehicle has subscription history and cannot be deleted');
     }
 
     const transferCount = await vehicleRepo.countTransfersForVehicle(id);

@@ -15,7 +15,7 @@ function makeVehicleRepoFake() {
 function makeUserRepoFake() {
   return {
     list: vi.fn(),
-    countByStatus: vi.fn(),
+    countBySubscriptionStatus: vi.fn(),
     findById: vi.fn(),
     findByEmail: vi.fn(),
     update: vi.fn(),
@@ -28,6 +28,7 @@ function makeSubscriptionRepoFake() {
     cancelAllForUser: vi.fn(),
     findById: vi.fn(),
     findActiveByVehicle: vi.fn(),
+    countByVehicle: vi.fn(),
     create: vi.fn(),
     updateVehicle: vi.fn(),
     recordTransfer: vi.fn(),
@@ -91,20 +92,32 @@ describe('vehicle.service', () => {
       expect(vehicleRepo.delete).not.toHaveBeenCalled();
     });
 
+    it('throws ConflictError when the vehicle has only cancelled subscription history', async () => {
+      const { service, vehicleRepo, subscriptionRepo } = makeService();
+      vehicleRepo.findById.mockResolvedValue({ id: 'veh-1' });
+      subscriptionRepo.findActiveByVehicle.mockResolvedValue(null);
+      subscriptionRepo.countByVehicle.mockResolvedValue(1);
+
+      await expect(service.deleteVehicle('veh-1')).rejects.toThrow(ConflictError);
+      expect(vehicleRepo.delete).not.toHaveBeenCalled();
+    });
+
     it('throws ConflictError when the vehicle has transfer history', async () => {
       const { service, vehicleRepo, subscriptionRepo } = makeService();
       vehicleRepo.findById.mockResolvedValue({ id: 'veh-1' });
       subscriptionRepo.findActiveByVehicle.mockResolvedValue(null);
+      subscriptionRepo.countByVehicle.mockResolvedValue(0);
       vehicleRepo.countTransfersForVehicle.mockResolvedValue(2);
 
       await expect(service.deleteVehicle('veh-1')).rejects.toThrow(ConflictError);
       expect(vehicleRepo.delete).not.toHaveBeenCalled();
     });
 
-    it('deletes freely when there is no active subscription and no transfer history', async () => {
+    it('deletes freely when there is no subscription history and no transfer history', async () => {
       const { service, vehicleRepo, subscriptionRepo } = makeService();
       vehicleRepo.findById.mockResolvedValue({ id: 'veh-1' });
       subscriptionRepo.findActiveByVehicle.mockResolvedValue(null);
+      subscriptionRepo.countByVehicle.mockResolvedValue(0);
       vehicleRepo.countTransfersForVehicle.mockResolvedValue(0);
       vehicleRepo.delete.mockResolvedValue({ id: 'veh-1' });
 

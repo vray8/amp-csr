@@ -35,6 +35,14 @@ function findActiveByVehicle(vehicleId: string, tx: PrismaTx = prisma) {
   });
 }
 
+// Total subscriptions referencing this vehicle, in ANY status (including
+// CANCELLED). Cancelled subscriptions still hold the `vehicleId` FK, so a
+// vehicle with subscription history can't be hard-deleted — see
+// vehicle.service `deleteVehicle`.
+function countByVehicle(vehicleId: string, tx: PrismaTx = prisma): Promise<number> {
+  return tx.subscription.count({ where: { vehicleId } });
+}
+
 export interface CreateSubscriptionData {
   userId: string;
   vehicleId: string;
@@ -82,6 +90,7 @@ export const subscriptionRepository = {
   cancelAllForUser,
   findById,
   findActiveByVehicle,
+  countByVehicle,
   create,
   updateVehicle,
   recordTransfer,

@@ -76,11 +76,11 @@ export function UserSearchBar({ search, status, onSearchChange, onStatusChange }
           },
         }}
       />
-      <FormControl size="small" sx={{ minWidth: 160 }}>
-        <InputLabel id="status-filter-label">Status</InputLabel>
+      <FormControl size="small" sx={{ minWidth: 170 }}>
+        <InputLabel id="status-filter-label">Account status</InputLabel>
         <Select
           labelId="status-filter-label"
-          label="Status"
+          label="Account status"
           value={status ?? 'ALL'}
           onChange={handleStatusSelect}
         >

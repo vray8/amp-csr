@@ -7,6 +7,7 @@ function makeSubscriptionRepoFake() {
     cancelAllForUser: vi.fn(),
     findById: vi.fn(),
     findActiveByVehicle: vi.fn(),
+    countByVehicle: vi.fn(),
     create: vi.fn(),
     updateVehicle: vi.fn(),
     recordTransfer: vi.fn(),
@@ -32,7 +33,7 @@ function makePlanRepoFake() {
 function makeUserRepoFake() {
   return {
     list: vi.fn(),
-    countByStatus: vi.fn(),
+    countBySubscriptionStatus: vi.fn(),
     findById: vi.fn(),
     findByEmail: vi.fn(),
     update: vi.fn(),
