@@ -10,7 +10,9 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
+import CreditCardOffIcon from '@mui/icons-material/CreditCardOff';
 import { StatusChip } from '@/components/common/StatusChip';
+import { EmptyState } from '@/components/common/EmptyState';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { AddSubscriptionDialog } from '@/components/user-detail/AddSubscriptionDialog';
 import { TransferDialog } from '@/components/user-detail/TransferDialog';
@@ -80,14 +82,25 @@ export function SubscriptionsSection({ user }: SubscriptionsSectionProps) {
       />
       <CardContent>
         {subscriptions.length === 0 ? (
-          <Stack spacing={1.5} sx={{ alignItems: 'flex-start' }}>
-            <Typography variant="body2" color="text.secondary">
-              No subscriptions
-            </Typography>
-            <Button size="small" variant="outlined" disabled={addDisabled} onClick={() => setAddOpen(true)}>
-              Add subscription
-            </Button>
-          </Stack>
+          <EmptyState
+            icon={<CreditCardOffIcon />}
+            title="No subscriptions"
+            description="This customer doesn't have any vehicle memberships yet."
+            action={
+              <Tooltip title={addDisabledReason}>
+                <span>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={addDisabled}
+                    onClick={() => setAddOpen(true)}
+                  >
+                    Add subscription
+                  </Button>
+                </span>
+              </Tooltip>
+            }
+          />
         ) : (
           <Stack spacing={2} divider={<Divider />}>
             {subscriptions.map((sub) => {

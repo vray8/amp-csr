@@ -15,6 +15,7 @@ function makeVehicleRepoFake() {
 function makeUserRepoFake() {
   return {
     list: vi.fn(),
+    countByStatus: vi.fn(),
     findById: vi.fn(),
     findByEmail: vi.fn(),
     update: vi.fn(),

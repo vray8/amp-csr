@@ -26,6 +26,15 @@ export interface UserListResult {
   pageSize: number;
 }
 
+// Account-status breakdown powering the dashboard stat strip
+// (`GET /api/users/stats`).
+export interface UserStats {
+  total: number;
+  active: number;
+  overdue: number;
+  cancelled: number;
+}
+
 // Shared frontend view of a `GET /api/users/[id]` payload, matching the
 // `detailInclude` projection in `src/server/repositories/user.repository.ts`.
 // Dates travel as ISO strings once they cross the `fetch` boundary, same as

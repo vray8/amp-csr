@@ -7,6 +7,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
+import Avatar from '@mui/material/Avatar';
 import { StatusChip } from '@/components/common/StatusChip';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useCancelAccount } from '@/hooks/useCancelAccount';
@@ -28,6 +29,13 @@ export function UserDetailHeader({ user }: UserDetailHeaderProps) {
 
   const expectedPhrase = `cancel ${user.name}'s account`;
   const isCancelled = user.status === 'CANCELLED';
+  const initials = user.name
+    .split(' ')
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
   const openDialog = () => {
     setConfirmText('');
@@ -58,18 +66,31 @@ export function UserDetailHeader({ user }: UserDetailHeaderProps) {
     <Card>
       <CardContent>
         <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Stack spacing={1}>
-            <Typography variant="h4" component="h1">
-              {user.name}
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              {user.email} · {user.phone}
-            </Typography>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-              <StatusChip status={user.status} />
-              <Typography variant="body2" color="text.secondary">
-                Member since {formatDate(user.createdAt)}
+          <Stack direction="row" spacing={2} sx={{ alignItems: 'flex-start' }}>
+            <Avatar
+              sx={{
+                width: 56,
+                height: 56,
+                bgcolor: 'primary.main',
+                fontSize: '1.25rem',
+                fontWeight: 600,
+              }}
+            >
+              {initials}
+            </Avatar>
+            <Stack spacing={1}>
+              <Typography variant="h4" component="h1">
+                {user.name}
               </Typography>
+              <Typography variant="body1" color="text.secondary">
+                {user.email} · {user.phone}
+              </Typography>
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                <StatusChip status={user.status} />
+                <Typography variant="body2" color="text.secondary">
+                  Member since {formatDate(user.createdAt)}
+                </Typography>
+              </Stack>
             </Stack>
           </Stack>
           {!isCancelled && (

@@ -14,8 +14,10 @@ import TablePagination from '@mui/material/TablePagination';
 import Tooltip from '@mui/material/Tooltip';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
+import Skeleton from '@mui/material/Skeleton';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { StatusChip } from '@/components/common/StatusChip';
+import { EmptyState } from '@/components/common/EmptyState';
 import { usePurchases } from '@/hooks/usePurchases';
 import { formatMoney, formatDate } from '@/lib/format';
 import type { ApiError } from '@/lib/api-client';
@@ -56,17 +58,30 @@ export function PurchaseHistoryTable({ userId }: PurchaseHistoryTableProps) {
   }
 
   const items = data?.items ?? [];
+  // First load (no cached page yet): show skeleton rows instead of an empty
+  // table flashing to "no purchases" before the data arrives.
+  const isInitialLoading = isFetching && data === undefined;
+
+  if (items.length === 0 && !isFetching) {
+    return (
+      <Card>
+        <CardHeader title="Purchase History" />
+        <CardContent>
+          <EmptyState
+            icon={<ReceiptLongIcon />}
+            title="No purchases yet"
+            description="This customer hasn't made any purchases."
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader title="Purchase History" />
       <CardContent>
-        {items.length === 0 && !isFetching ? (
-          <Typography variant="body2" color="text.secondary">
-            No purchases yet.
-          </Typography>
-        ) : (
-          <>
+        <>
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -79,6 +94,16 @@ export function PurchaseHistoryTable({ userId }: PurchaseHistoryTableProps) {
                   </TableRow>
                 </TableHead>
                 <TableBody>
+                  {isInitialLoading &&
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <TableRow key={`sk-${i}`}>
+                        {Array.from({ length: 5 }).map((__, j) => (
+                          <TableCell key={j} align={j === 3 ? 'right' : 'left'}>
+                            <Skeleton />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
                   {items.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>{formatDate(p.createdAt)}</TableCell>
@@ -110,7 +135,6 @@ export function PurchaseHistoryTable({ userId }: PurchaseHistoryTableProps) {
               rowsPerPageOptions={[pageSize]}
             />
           </>
-        )}
       </CardContent>
     </Card>
   );
