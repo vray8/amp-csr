@@ -9,6 +9,8 @@ import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
+import { EmptyState } from '@/components/common/EmptyState';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { AddVehicleDialog } from '@/components/user-detail/AddVehicleDialog';
 import { EditVehicleDialog } from '@/components/user-detail/EditVehicleDialog';
@@ -65,14 +67,25 @@ export function VehiclesSection({ user }: VehiclesSectionProps) {
       />
       <CardContent>
         {user.vehicles.length === 0 ? (
-          <Stack spacing={1.5} sx={{ alignItems: 'flex-start' }}>
-            <Typography variant="body2" color="text.secondary">
-              No vehicles on file
-            </Typography>
-            <Button size="small" variant="outlined" disabled={isCancelled} onClick={() => setAddOpen(true)}>
-              Add vehicle
-            </Button>
-          </Stack>
+          <EmptyState
+            icon={<DirectionsCarIcon />}
+            title="No vehicles on file"
+            description="Add a vehicle before creating a subscription for this customer."
+            action={
+              <Tooltip title={isCancelled ? 'Account is cancelled' : ''}>
+                <span>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={isCancelled}
+                    onClick={() => setAddOpen(true)}
+                  >
+                    Add vehicle
+                  </Button>
+                </span>
+              </Tooltip>
+            }
+          />
         ) : (
           <Stack spacing={1.5} divider={<Divider />}>
             {user.vehicles.map((v) => (

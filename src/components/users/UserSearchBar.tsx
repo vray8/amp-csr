@@ -7,6 +7,8 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import InputAdornment from '@mui/material/InputAdornment';
+import SearchIcon from '@mui/icons-material/Search';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { UserListQuery } from '@/lib/schemas/user.schema';
@@ -64,6 +66,15 @@ export function UserSearchBar({ search, status, onSearchChange, onStatusChange }
         onChange={(e) => setInputValue(e.target.value)}
         size="small"
         fullWidth
+        slotProps={{
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" color="action" />
+              </InputAdornment>
+            ),
+          },
+        }}
       />
       <FormControl size="small" sx={{ minWidth: 160 }}>
         <InputLabel id="status-filter-label">Status</InputLabel>

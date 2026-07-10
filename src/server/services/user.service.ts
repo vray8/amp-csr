@@ -71,6 +71,11 @@ export function createUserService(
     return { items, total, page, pageSize };
   }
 
+  // Account-status counts for the dashboard stat strip.
+  function stats() {
+    return userRepo.countByStatus();
+  }
+
   async function getById(id: string) {
     const user = await userRepo.findById(id);
     if (!user) throw new NotFoundError('User', id);
@@ -119,7 +124,7 @@ export function createUserService(
     return updated;
   }
 
-  return { list, getById, update, cancel };
+  return { list, stats, getById, update, cancel };
 }
 
 export const userService = createUserService(userRepository, subscriptionRepository);

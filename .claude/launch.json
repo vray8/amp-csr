@@ -6,6 +6,12 @@
       "runtimeExecutable": "/Users/vivekray/.nvm/versions/node/v22.23.1/bin/node",
       "runtimeArgs": ["./node_modules/.bin/next", "dev", "-p", "3051"],
       "port": 3051
+    },
+    {
+      "name": "docs",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "3052", "--directory", "docs"],
+      "port": 3052
     }
   ]
 }

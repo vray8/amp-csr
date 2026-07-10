@@ -60,6 +60,19 @@ async function list(params: ListUsersParams) {
   return { items, total };
 }
 
+// Account-status breakdown for the dashboard stat strip. One transaction of
+// scalar counts (typed as number[]) rather than groupBy, so a status with
+// zero users still returns 0 instead of being absent from the result.
+async function countByStatus() {
+  const [total, active, overdue, cancelled] = await prisma.$transaction([
+    prisma.user.count(),
+    prisma.user.count({ where: { status: 'ACTIVE' } }),
+    prisma.user.count({ where: { status: 'OVERDUE' } }),
+    prisma.user.count({ where: { status: 'CANCELLED' } }),
+  ]);
+  return { total, active, overdue, cancelled };
+}
+
 function findById(id: string, tx: PrismaTx = prisma) {
   return tx.user.findUnique({ where: { id }, include: detailInclude });
 }
@@ -80,4 +93,4 @@ function setStatus(id: string, status: AccountStatus, tx: PrismaTx = prisma) {
   return tx.user.update({ where: { id }, data: { status } });
 }
 
-export const userRepository = { list, findById, findByEmail, update, setStatus };
+export const userRepository = { list, countByStatus, findById, findByEmail, update, setStatus };

@@ -2,12 +2,14 @@
 
 import { Suspense, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { userListQuerySchema, type UserListQuery } from '@/lib/schemas/user.schema';
 import { useUsers, toQueryString } from '@/hooks/useUsers';
 import { UserSearchBar } from '@/components/users/UserSearchBar';
+import { UsersStatsBar } from '@/components/users/UsersStatsBar';
 import { UsersTable } from '@/components/users/UsersTable';
 
 function parseParams(searchParams: URLSearchParams): UserListQuery {
@@ -51,9 +53,15 @@ function UsersPageContent() {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Stack spacing={3}>
-        <Typography variant="h4" component="h1">
-          Users
-        </Typography>
+        <Box>
+          <Typography variant="h4" component="h1">
+            Users
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Find a customer and manage their account, subscriptions, and vehicles.
+          </Typography>
+        </Box>
+        <UsersStatsBar status={params.status} onStatusChange={handleStatusChange} />
         <UserSearchBar
           search={params.search ?? ''}
           status={params.status}

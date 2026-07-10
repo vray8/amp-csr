@@ -8,6 +8,7 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import { useUser } from '@/hooks/useUser';
 import { ApiError } from '@/lib/api-client';
+import { DetailBreadcrumbs } from '@/components/user-detail/DetailBreadcrumbs';
 import { OverdueBanner } from '@/components/user-detail/OverdueBanner';
 import { UserDetailHeader } from '@/components/user-detail/UserDetailHeader';
 import { AccountInfoCard } from '@/components/user-detail/AccountInfoCard';
@@ -27,16 +28,19 @@ export default function UserDetailPage() {
     const apiError = error as ApiError | undefined;
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert
-          severity="error"
-          action={
-            <Button color="inherit" size="small" onClick={() => refetch()}>
-              Retry
-            </Button>
-          }
-        >
-          {apiError?.message ?? 'Failed to load user.'}
-        </Alert>
+        <Stack spacing={3}>
+          <DetailBreadcrumbs />
+          <Alert
+            severity="error"
+            action={
+              <Button color="inherit" size="small" onClick={() => refetch()}>
+                Retry
+              </Button>
+            }
+          >
+            {apiError?.message ?? 'Failed to load user.'}
+          </Alert>
+        </Stack>
       </Container>
     );
   }
@@ -45,6 +49,7 @@ export default function UserDetailPage() {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Stack spacing={3}>
+          <DetailBreadcrumbs />
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} variant="rounded" height={140} />
           ))}
@@ -56,6 +61,7 @@ export default function UserDetailPage() {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Stack spacing={3}>
+        <DetailBreadcrumbs name={user.name} />
         <OverdueBanner user={user} />
         <UserDetailHeader user={user} />
         <AccountInfoCard user={user} />

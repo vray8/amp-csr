@@ -5,6 +5,7 @@ import { NotFoundError } from '@/server/errors';
 function makeUserRepoFake() {
   return {
     list: vi.fn(),
+    countByStatus: vi.fn(),
     findById: vi.fn(),
     findByEmail: vi.fn(),
     update: vi.fn(),
