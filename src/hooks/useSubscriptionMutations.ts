@@ -32,6 +32,18 @@ export function useCancelSubscription(userId: string) {
   });
 }
 
+export function usePayOverdueSubscription(userId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (subscriptionId: string) =>
+      api<SubscriptionDetail>(`/api/subscriptions/${subscriptionId}/pay`, { method: 'POST' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['user', userId] });
+      qc.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+}
+
 export function useTransferSubscription(userId: string) {
   const qc = useQueryClient();
   return useMutation({

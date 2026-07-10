@@ -50,6 +50,13 @@ function UsersPageContent() {
     [setUrl],
   );
 
+  const handleSubscriptionStatusChange = useCallback(
+    (subscriptionStatus: UserListQuery['subscriptionStatus']) => {
+      setUrl({ subscriptionStatus, page: 1 });
+    },
+    [setUrl],
+  );
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Stack spacing={3}>
@@ -61,7 +68,10 @@ function UsersPageContent() {
             Find a customer and manage their account, subscriptions, and vehicles.
           </Typography>
         </Box>
-        <UsersStatsBar status={params.status} onStatusChange={handleStatusChange} />
+        <UsersStatsBar
+          subscriptionStatus={params.subscriptionStatus}
+          onSubscriptionStatusChange={handleSubscriptionStatusChange}
+        />
         <UserSearchBar
           search={params.search ?? ''}
           status={params.status}

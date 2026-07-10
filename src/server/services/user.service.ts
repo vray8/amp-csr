@@ -38,14 +38,19 @@ export function createUserService(
   runTransaction: RunTransaction = defaultRunTransaction,
 ) {
   async function list(query: UserListQuery) {
-    const { page, pageSize, search, status, sort } = query;
+    const { page, pageSize, search, status, subscriptionStatus, sort } = query;
     const [field, direction] = sort.split(':') as [
       'name' | 'createdAt' | 'status',
       'asc' | 'desc',
     ];
 
     const where: Prisma.UserWhereInput = {
+      // Account-status filter (dropdown).
       ...(status ? { status } : {}),
+      // Subscription-status filter (stat cards): customers who have a
+      // subscription in the chosen status. Independent of the account filter;
+      // both AND together when set.
+      ...(subscriptionStatus ? { subscriptions: { some: { status: subscriptionStatus } } } : {}),
       ...(search
         ? {
             OR: [
@@ -71,9 +76,9 @@ export function createUserService(
     return { items, total, page, pageSize };
   }
 
-  // Account-status counts for the dashboard stat strip.
+  // Subscription-status counts for the dashboard stat strip.
   function stats() {
-    return userRepo.countByStatus();
+    return userRepo.countBySubscriptionStatus();
   }
 
   async function getById(id: string) {

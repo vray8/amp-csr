@@ -12,7 +12,7 @@ import type { UserListQuery } from '@/lib/schemas/user.schema';
 import type { UserListItem, UserListResult } from '@/lib/types';
 import type { ApiError } from '@/lib/api-client';
 
-const SORTABLE_FIELDS = new Set(['name', 'createdAt', 'status']);
+const SORTABLE_FIELDS = new Set(['name', 'createdAt']);
 
 export interface UsersTableProps {
   data: UserListResult | undefined;
@@ -44,17 +44,15 @@ export function UsersTable({
       { field: 'email', headerName: 'Email', width: 260 },
       { field: 'phone', headerName: 'Phone', width: 180, sortable: false },
       {
-        field: 'status',
-        headerName: 'Status',
-        width: 130,
-        renderCell: (p) => <StatusChip status={p.row.status} />,
-      },
-      {
-        field: 'activeSubs',
-        headerName: 'Active subs',
-        width: 120,
+        // Subscription status (not account status) — the user's current
+        // subscription. Sorting is unavailable because it lives on a related
+        // record, so this column is not server-sortable.
+        field: 'subscriptionStatus',
+        headerName: 'Subscription',
+        width: 140,
         sortable: false,
-        valueGetter: (_value, row) => row._count.subscriptions,
+        renderCell: (p) =>
+          p.row.subscriptionStatus ? <StatusChip status={p.row.subscriptionStatus} /> : '—',
       },
       {
         field: 'createdAt',

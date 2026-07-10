@@ -10,7 +10,11 @@ export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 
 export const userListQuerySchema = paginationSchema.extend({
   search: z.string().trim().max(100).optional(),
+  // `status` filters by ACCOUNT status (the dropdown); `subscriptionStatus`
+  // filters by the customer's SUBSCRIPTION status (the stat cards). They are
+  // independent and combine (AND) when both are set.
   status: z.enum(['ACTIVE', 'OVERDUE', 'CANCELLED']).optional(),
+  subscriptionStatus: z.enum(['ACTIVE', 'PAUSED', 'OVERDUE', 'CANCELLED']).optional(),
   sort: z
     .string()
     .regex(/^(name|createdAt|status):(asc|desc)$/)

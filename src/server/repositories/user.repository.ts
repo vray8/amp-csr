@@ -14,10 +14,13 @@ const listSelect = {
   paymentMethodLast4: true,
   createdAt: true,
   updatedAt: true,
-  _count: {
-    select: {
-      subscriptions: { where: { status: 'ACTIVE' as const } },
-    },
+  // The user's current subscription (most recent by creation) drives the
+  // Status column in the users table. Account status and subscription status
+  // are distinct concepts; the list surfaces the subscription's status.
+  subscriptions: {
+    select: { status: true },
+    orderBy: { createdAt: 'desc' as const },
+    take: 1,
   },
 } satisfies Prisma.UserSelect;
 
@@ -53,24 +56,47 @@ export interface ListUsersParams {
 
 async function list(params: ListUsersParams) {
   const { where, skip, take, orderBy } = params;
-  const [total, items] = await prisma.$transaction([
+  const [total, rows] = await prisma.$transaction([
     prisma.user.count({ where }),
     prisma.user.findMany({ where, skip, take, orderBy, select: listSelect }),
   ]);
+  // Flatten the take-1 subscriptions relation into a single status field
+  // (null when the user has no subscriptions) to match `UserListItem`.
+  const items = rows.map(({ subscriptions, ...user }) => ({
+    ...user,
+    subscriptionStatus: subscriptions[0]?.status ?? null,
+  }));
   return { items, total };
 }
 
-// Account-status breakdown for the dashboard stat strip. One transaction of
-// scalar counts (typed as number[]) rather than groupBy, so a status with
-// zero users still returns 0 instead of being absent from the result.
-async function countByStatus() {
-  const [total, active, overdue, cancelled] = await prisma.$transaction([
-    prisma.user.count(),
-    prisma.user.count({ where: { status: 'ACTIVE' } }),
-    prisma.user.count({ where: { status: 'OVERDUE' } }),
-    prisma.user.count({ where: { status: 'CANCELLED' } }),
-  ]);
-  return { total, active, overdue, cancelled };
+// Customers bucketed by the status of their *current* subscription (the most
+// recent one — same representative the users-table Status column uses), for
+// the dashboard stat strip. `total` stays the customer count; a customer
+// whose current subscription is PAUSED, or who has no subscription at all,
+// contributes to `total` but to none of the three status buckets. Done as a
+// single lightweight scan + in-memory reduce because "most recent per user"
+// can't be expressed as a Prisma groupBy.
+async function countBySubscriptionStatus() {
+  const users = await prisma.user.findMany({
+    select: {
+      subscriptions: { select: { status: true }, orderBy: { createdAt: 'desc' as const }, take: 1 },
+    },
+  });
+  const counts = { total: users.length, active: 0, overdue: 0, cancelled: 0 };
+  for (const u of users) {
+    switch (u.subscriptions[0]?.status) {
+      case 'ACTIVE':
+        counts.active++;
+        break;
+      case 'OVERDUE':
+        counts.overdue++;
+        break;
+      case 'CANCELLED':
+        counts.cancelled++;
+        break;
+    }
+  }
+  return counts;
 }
 
 function findById(id: string, tx: PrismaTx = prisma) {
@@ -93,4 +119,4 @@ function setStatus(id: string, status: AccountStatus, tx: PrismaTx = prisma) {
   return tx.user.update({ where: { id }, data: { status } });
 }
 
-export const userRepository = { list, countByStatus, findById, findByEmail, update, setStatus };
+export const userRepository = { list, countBySubscriptionStatus, findById, findByEmail, update, setStatus };

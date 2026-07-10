@@ -5,7 +5,7 @@ import { NotFoundError } from '@/server/errors';
 function makeUserRepoFake() {
   return {
     list: vi.fn(),
-    countByStatus: vi.fn(),
+    countBySubscriptionStatus: vi.fn(),
     findById: vi.fn(),
     findByEmail: vi.fn(),
     update: vi.fn(),
@@ -168,12 +168,14 @@ describe('user.service', () => {
         pageSize: 10,
         search: 'smith',
         status: 'ACTIVE',
+        subscriptionStatus: 'CANCELLED',
         sort: 'name:asc',
       });
 
       expect(userRepo.list).toHaveBeenCalledWith({
         where: {
           status: 'ACTIVE',
+          subscriptions: { some: { status: 'CANCELLED' } },
           OR: [
             { name: { contains: 'smith', mode: 'insensitive' } },
             { email: { contains: 'smith', mode: 'insensitive' } },

@@ -7,10 +7,12 @@ function makeSubscriptionRepoFake() {
     cancelAllForUser: vi.fn(),
     findById: vi.fn(),
     findActiveByVehicle: vi.fn(),
+    countByVehicle: vi.fn(),
     create: vi.fn(),
     updateVehicle: vi.fn(),
     recordTransfer: vi.fn(),
     cancel: vi.fn(),
+    reactivate: vi.fn(),
     countByUserAndStatus: vi.fn(),
   };
 }
@@ -32,7 +34,7 @@ function makePlanRepoFake() {
 function makeUserRepoFake() {
   return {
     list: vi.fn(),
-    countByStatus: vi.fn(),
+    countBySubscriptionStatus: vi.fn(),
     findById: vi.fn(),
     findByEmail: vi.fn(),
     update: vi.fn(),
@@ -215,6 +217,68 @@ describe('subscription.service', () => {
       subscriptionRepo.findById.mockResolvedValue(null);
 
       await expect(service.cancel('missing-sub')).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  describe('payOverdue', () => {
+    const overdueSub = {
+      id: 'sub-1',
+      userId: 'user-1',
+      vehicleId: 'veh-1',
+      status: 'OVERDUE',
+      plan: { name: 'Premium', priceCents: 1999 },
+    };
+
+    it('reactivates the sub, records a PAID purchase, and clears the account OVERDUE status', async () => {
+      const { service, subscriptionRepo, purchaseRepo, userRepo } = makeService();
+      subscriptionRepo.findById.mockResolvedValue(overdueSub);
+      const reactivated = { ...overdueSub, status: 'ACTIVE' };
+      subscriptionRepo.reactivate.mockResolvedValue(reactivated);
+      subscriptionRepo.countByUserAndStatus.mockResolvedValue(0);
+      userRepo.findById.mockResolvedValue({ id: 'user-1', status: 'OVERDUE' });
+
+      const result = await service.payOverdue('sub-1');
+
+      expect(subscriptionRepo.reactivate).toHaveBeenCalledWith('sub-1', expect.any(Date), undefined);
+      expect(purchaseRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user-1',
+          type: 'SUBSCRIPTION_PAYMENT',
+          status: 'PAID',
+          amountCents: 1999,
+          subscriptionId: 'sub-1',
+        }),
+        undefined,
+      );
+      expect(userRepo.setStatus).toHaveBeenCalledWith('user-1', 'ACTIVE', undefined);
+      expect(result).toEqual(reactivated);
+    });
+
+    it('leaves the account OVERDUE when another overdue subscription remains', async () => {
+      const { service, subscriptionRepo, userRepo } = makeService();
+      subscriptionRepo.findById.mockResolvedValue(overdueSub);
+      subscriptionRepo.reactivate.mockResolvedValue({ ...overdueSub, status: 'ACTIVE' });
+      subscriptionRepo.countByUserAndStatus.mockResolvedValue(1);
+      userRepo.findById.mockResolvedValue({ id: 'user-1', status: 'OVERDUE' });
+
+      await service.payOverdue('sub-1');
+
+      expect(userRepo.setStatus).not.toHaveBeenCalled();
+    });
+
+    it('throws ConflictError when the subscription is not overdue', async () => {
+      const { service, subscriptionRepo } = makeService();
+      subscriptionRepo.findById.mockResolvedValue({ ...overdueSub, status: 'ACTIVE' });
+
+      await expect(service.payOverdue('sub-1')).rejects.toThrow(ConflictError);
+      expect(subscriptionRepo.reactivate).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundError for an unknown subscription', async () => {
+      const { service, subscriptionRepo } = makeService();
+      subscriptionRepo.findById.mockResolvedValue(null);
+
+      await expect(service.payOverdue('missing-sub')).rejects.toThrow(NotFoundError);
     });
   });
 
