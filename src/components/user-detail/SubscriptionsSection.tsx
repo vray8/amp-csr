@@ -16,6 +16,7 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { AddSubscriptionDialog } from '@/components/user-detail/AddSubscriptionDialog';
 import { TransferDialog } from '@/components/user-detail/TransferDialog';
+import { PayOverdueDialog } from '@/components/user-detail/PayOverdueDialog';
 import { useCancelSubscription } from '@/hooks/useSubscriptionMutations';
 import { useSnackbar } from '@/app/providers';
 import { ApiError } from '@/lib/api-client';
@@ -33,6 +34,7 @@ export function SubscriptionsSection({ user }: SubscriptionsSectionProps) {
   const [addOpen, setAddOpen] = useState(false);
   const [transferring, setTransferring] = useState<SubscriptionDetail | null>(null);
   const [cancelling, setCancelling] = useState<SubscriptionDetail | null>(null);
+  const [paying, setPaying] = useState<SubscriptionDetail | null>(null);
 
   const subscriptions = user.subscriptions;
 
@@ -149,6 +151,11 @@ export function SubscriptionsSection({ user }: SubscriptionsSectionProps) {
 
                   {isActionable && (
                     <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
+                      {sub.status === 'OVERDUE' && (
+                        <Button size="small" variant="contained" onClick={() => setPaying(sub)}>
+                          Pay overdue balance
+                        </Button>
+                      )}
                       <Button size="small" onClick={() => setTransferring(sub)}>
                         Transfer
                       </Button>
@@ -184,6 +191,10 @@ export function SubscriptionsSection({ user }: SubscriptionsSectionProps) {
           subscribedVehicleIds={subscribedVehicleIds}
           onClose={() => setTransferring(null)}
         />
+      )}
+
+      {paying && (
+        <PayOverdueDialog open user={user} subscription={paying} onClose={() => setPaying(null)} />
       )}
 
       <ConfirmDialog

@@ -107,6 +107,43 @@ export function createSubscriptionService(
     });
   }
 
+  // Bring an overdue subscription current. No real payment is processed (the
+  // card form is a client-side gate); this records a PAID catch-up purchase so
+  // it shows in history, flips the subscription back to ACTIVE, and — mirroring
+  // `cancel` — clears the account's derived OVERDUE status once no overdue
+  // subscriptions remain.
+  async function payOverdue(subscriptionId: string) {
+    const sub = await subscriptionRepo.findById(subscriptionId);
+    if (!sub) throw new NotFoundError('Subscription', subscriptionId);
+    if (sub.status !== 'OVERDUE') {
+      throw new ConflictError('Only an overdue subscription can be brought current');
+    }
+
+    const now = new Date();
+    const nextBillingDate = addMonths(now, 1);
+
+    return runInTransaction(async (tx) => {
+      const updated = await subscriptionRepo.reactivate(subscriptionId, nextBillingDate, tx);
+      await purchaseRepo.create(
+        {
+          userId: sub.userId,
+          type: 'SUBSCRIPTION_PAYMENT',
+          status: 'PAID',
+          amountCents: sub.plan.priceCents,
+          description: `${sub.plan.name} Monthly — overdue balance paid`,
+          subscriptionId: sub.id,
+        },
+        tx,
+      );
+      const overdueLeft = await subscriptionRepo.countByUserAndStatus(sub.userId, 'OVERDUE', tx);
+      const user = await userRepo.findById(sub.userId, tx);
+      if (user && user.status === 'OVERDUE' && overdueLeft === 0) {
+        await userRepo.setStatus(sub.userId, 'ACTIVE', tx);
+      }
+      return updated;
+    });
+  }
+
   async function transfer(subscriptionId: string, toVehicleId: string) {
     const sub = await subscriptionRepo.findById(subscriptionId);
     if (!sub) throw new NotFoundError('Subscription', subscriptionId);
@@ -136,7 +173,7 @@ export function createSubscriptionService(
     });
   }
 
-  return { create, cancel, transfer };
+  return { create, cancel, payOverdue, transfer };
 }
 
 export const subscriptionService = createSubscriptionService(

@@ -33,6 +33,7 @@ function makeSubscriptionRepoFake() {
     updateVehicle: vi.fn(),
     recordTransfer: vi.fn(),
     cancel: vi.fn(),
+    reactivate: vi.fn(),
     countByUserAndStatus: vi.fn(),
   };
 }

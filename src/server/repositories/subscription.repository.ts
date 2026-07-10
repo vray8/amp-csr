@@ -82,6 +82,16 @@ function cancel(subscriptionId: string, now: Date, tx: PrismaTx = prisma) {
   });
 }
 
+// Bring an overdue subscription current again: back to ACTIVE with a fresh
+// billing date. See subscription.service `payOverdue`.
+function reactivate(subscriptionId: string, nextBillingDate: Date, tx: PrismaTx = prisma) {
+  return tx.subscription.update({
+    where: { id: subscriptionId },
+    data: { status: 'ACTIVE', nextBillingDate },
+    include: detailInclude,
+  });
+}
+
 function countByUserAndStatus(userId: string, status: SubscriptionStatus, tx: PrismaTx = prisma) {
   return tx.subscription.count({ where: { userId, status } });
 }
@@ -95,5 +105,6 @@ export const subscriptionRepository = {
   updateVehicle,
   recordTransfer,
   cancel,
+  reactivate,
   countByUserAndStatus,
 };
