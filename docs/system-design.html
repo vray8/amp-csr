@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AMP CSR Portal — System Design</title>
+<style>
+  :root {
+    --paper: #fbfcfd;
+    --panel: #ffffff;
+    --ink: #1b2733;
+    --muted: #5c6c7b;
+    --line: #d9e3ea;
+    --accent: #0e7490;
+    --accent-ink: #0b5c73;
+    --accent-soft: #e3f3f8;
+    --warn: #b45309;
+    --warn-soft: #fdf3e3;
+    --ok: #15803d;
+    --danger: #b91c1c;
+    --code-bg: #f2f6f8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0f151b;
+      --panel: #151d25;
+      --ink: #e3eaf1;
+      --muted: #8da0b0;
+      --line: #263540;
+      --accent: #38b7d3;
+      --accent-ink: #6fd0e6;
+      --accent-soft: #103440;
+      --warn: #e0a34e;
+      --warn-soft: #2e2413;
+      --ok: #4cc077;
+      --danger: #ef7070;
+      --code-bg: #1a242e;
+    }
+  }
+  :root[data-theme="light"] {
+    --paper: #fbfcfd; --panel: #ffffff; --ink: #1b2733; --muted: #5c6c7b;
+    --line: #d9e3ea; --accent: #0e7490; --accent-ink: #0b5c73; --accent-soft: #e3f3f8;
+    --warn: #b45309; --warn-soft: #fdf3e3; --ok: #15803d; --danger: #b91c1c; --code-bg: #f2f6f8;
+  }
+  :root[data-theme="dark"] {
+    --paper: #0f151b; --panel: #151d25; --ink: #e3eaf1; --muted: #8da0b0;
+    --line: #263540; --accent: #38b7d3; --accent-ink: #6fd0e6; --accent-soft: #103440;
+    --warn: #e0a34e; --warn-soft: #2e2413; --ok: #4cc077; --danger: #ef7070; --code-bg: #1a242e;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Avenir Next", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.62;
+  }
+  main { max-width: 78ch; margin: 0 auto; padding: 48px 24px 96px; }
+
+  .eyebrow {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-size: 30px;
+    line-height: 1.2;
+    font-weight: 650;
+    margin: 0 0 8px;
+    text-wrap: balance;
+  }
+  .subtitle { color: var(--muted); margin: 0 0 6px; max-width: 62ch; }
+  .meta {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin: 14px 0 0;
+    display: flex; flex-wrap: wrap; gap: 6px 18px;
+  }
+  .meta a { color: var(--accent); text-decoration: none; }
+  .meta a:hover, .meta a:focus-visible { text-decoration: underline; }
+
+  h2 {
+    font-size: 21px;
+    font-weight: 650;
+    margin: 56px 0 12px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    text-wrap: balance;
+  }
+  h2 .num {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    color: var(--accent);
+    margin-right: 10px;
+    font-weight: 500;
+  }
+  h3 { font-size: 16.5px; font-weight: 650; margin: 26px 0 8px; }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 5px; }
+  strong { font-weight: 650; }
+  a { color: var(--accent); }
+
+  code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.86em;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  pre code { background: none; border: none; padding: 0; font-size: inherit; }
+
+  .toc {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 28px 0 0;
+  }
+  .toc p { margin: 0 0 8px; font-weight: 650; font-size: 14px; }
+  .toc ol {
+    margin: 0; padding-left: 0;
+    list-style: none;
+    columns: 2; column-gap: 32px;
+    font-size: 14.5px;
+  }
+  .toc li { margin: 0 0 6px; break-inside: avoid; }
+  .toc a { text-decoration: none; }
+  .toc a:hover, .toc a:focus-visible { text-decoration: underline; }
+  .toc .n {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; color: var(--muted); margin-right: 8px;
+  }
+  @media (max-width: 640px) { .toc ol { columns: 1; } }
+
+  figure {
+    margin: 22px 0;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 14px 10px;
+  }
+  .fig-scroll { overflow-x: auto; }
+  .fig-scroll svg { display: block; min-width: 680px; width: 100%; height: auto; }
+  figcaption {
+    font-size: 13px;
+    color: var(--muted);
+    padding: 10px 6px 4px;
+    border-top: 1px solid var(--line);
+    margin-top: 12px;
+  }
+  figcaption .fig-n {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color: var(--accent);
+    margin-right: 8px;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+    margin: 14px 0 20px;
+  }
+  .table-scroll { overflow-x: auto; }
+  th, td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  td code { white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .callout {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 14.5px;
+  }
+  .callout.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .callout p:last-child { margin-bottom: 0; }
+
+  /* ---- SVG diagram styles (inline SVGs inherit these tokens) ---- */
+  svg text {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    fill: var(--ink);
+  }
+  svg .box { fill: var(--panel); stroke: var(--line); stroke-width: 1.25; rx: 8; }
+  svg .box-accent { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.25; }
+  svg .box-ghost { fill: none; stroke: var(--line); stroke-dasharray: 4 4; }
+  svg .t-title { font-size: 13px; font-weight: 600; }
+  svg .t-body { font-size: 11.5px; }
+  svg .t-mut { font-size: 11.5px; fill: var(--muted); }
+  svg .t-acc { fill: var(--accent-ink); }
+  svg .t-warn { fill: var(--warn); }
+  svg .t-ok { fill: var(--ok); }
+  svg .t-danger { fill: var(--danger); }
+  svg .edge { stroke: var(--muted); stroke-width: 1.25; fill: none; }
+  svg .edge-acc { stroke: var(--accent); stroke-width: 1.5; fill: none; }
+  svg .edge-danger { stroke: var(--danger); stroke-width: 1.25; fill: none; }
+  svg .lifeline { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 4; }
+  svg .field-line { stroke: var(--line); stroke-width: 1; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    a { transition: color 120ms ease; }
+  }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <p class="eyebrow">System design · Engineering doc</p>
+  <h1>AMP CSR Portal</h1>
+  <p class="subtitle">A customer-service portal for a car-wash membership platform: how it's layered, how the data is modeled, how the transfer flow works, and where it scales next.</p>
+  <div class="meta">
+    <span>Repo: <a href="https://github.com/vray8/amp-csr">vray8/amp-csr</a></span>
+    <span>Live: <a href="https://amp-csr.vercel.app">amp-csr.vercel.app</a></span>
+    <span>Stack: Next.js 16 · MUI · Prisma 7 · Postgres (Neon) · React Query · zod · Vitest</span>
+  </div>
+
+  <nav class="toc" aria-label="Contents">
+    <p>Contents</p>
+    <ol>
+      <li><span class="n">01</span><a href="#overview">Problem &amp; goals</a></li>
+      <li><span class="n">02</span><a href="#architecture">Architecture</a></li>
+      <li><span class="n">03</span><a href="#lifecycle">Request lifecycle &amp; error model</a></li>
+      <li><span class="n">04</span><a href="#data-model">Data model</a></li>
+      <li><span class="n">05</span><a href="#rules">Business rules &amp; the transfer flow</a></li>
+      <li><span class="n">06</span><a href="#api">API surface</a></li>
+      <li><span class="n">07</span><a href="#frontend">Frontend design</a></li>
+      <li><span class="n">08</span><a href="#cicd">CI/CD &amp; deployment</a></li>
+      <li><span class="n">09</span><a href="#testing">Testing strategy</a></li>
+    </ol>
+  </nav>
+</header>
+
+<section id="overview">
+  <h2><span class="num">01</span>Problem &amp; goals</h2>
+  <p>AMP customers hold <strong>per-vehicle monthly wash subscriptions</strong>, buy single washes, and keep a payment method on file. When something goes wrong they call a CSR. The portal is built around the four calls CSRs actually take:</p>
+  <ol>
+    <li><em>"I want to cancel my account."</em> — one action that atomically cancels the account and every live subscription.</li>
+    <li><em>"I have a question about a recent purchase."</em> — full, paginated purchase history with statuses and failure reasons.</li>
+    <li><em>"I purchased a new vehicle and I want my subscription transferred."</em> — the flagship flow: move a membership between the caller's vehicles with an audit trail.</li>
+    <li><em>"I am not able to get a wash."</em> — the account is OVERDUE after a failed payment; the portal must say so immediately, with the reason.</li>
+  </ol>
+  <p>Design goals that follow: <strong>speed to answer</strong> (everything about a customer on one scannable page), <strong>correctness under concurrency</strong> (two CSRs can work the same account), and <strong>auditability</strong> (transfers leave a permanent record).</p>
+</section>
+
+<section id="architecture">
+  <h2><span class="num">02</span>Architecture</h2>
+  <p>One Next.js app, one deploy. The back-end is Route Handlers acting as thin controllers over a <strong>controller → service → repository</strong> layering. Each layer has one job and one dependency direction:</p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg viewBox="0 0 760 548" role="img" aria-label="Layered architecture diagram: browser, route handlers, services, repositories, database">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+        </marker>
+        <marker id="arr-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+        </marker>
+        <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--danger)"/>
+        </marker>
+      </defs>
+
+      <!-- Browser -->
+      <rect class="box" x="40" y="16" width="460" height="80" rx="8"/>
+      <text class="t-title" x="58" y="42">Browser — React client</text>
+      <text class="t-mut" x="58" y="62">MUI + DataGrid · React Query cache · RHF + zod</text>
+      <text class="t-mut" x="58" y="78">src/app · src/components · src/hooks</text>
+
+      <line class="edge-acc" x1="270" y1="96" x2="270" y2="130" marker-end="url(#arr-acc)"/>
+      <text class="t-body t-acc" x="284" y="116">fetch /api/… · { data } | { error } envelope</text>
+
+      <!-- Route handlers -->
+      <rect class="box" x="40" y="132" width="460" height="80" rx="8"/>
+      <text class="t-title" x="58" y="158">Route Handlers — controllers</text>
+      <text class="t-mut" x="58" y="178">zod parse → exactly one service call → ok(data)</text>
+      <text class="t-mut" x="58" y="194">src/app/api/** · ~10–15 lines each</text>
+
+      <line class="edge-acc" x1="270" y1="212" x2="270" y2="246" marker-end="url(#arr-acc)"/>
+      <text class="t-body t-acc" x="284" y="232">typed inputs (shared zod schemas)</text>
+
+      <!-- Services -->
+      <rect class="box box-accent" x="40" y="248" width="460" height="98" rx="8"/>
+      <text class="t-title" x="58" y="274">Services — business rules</text>
+      <text class="t-mut" x="58" y="294">invariants · $transaction boundaries · DomainErrors</text>
+      <text class="t-mut" x="58" y="312">repos + runInTransaction injected → tested with fakes</text>
+      <text class="t-mut" x="58" y="330">src/server/services · HTTP-free</text>
+
+      <line class="edge-acc" x1="270" y1="346" x2="270" y2="378" marker-end="url(#arr-acc)"/>
+
+      <!-- Repositories -->
+      <rect class="box" x="40" y="380" width="460" height="80" rx="8"/>
+      <text class="t-title" x="58" y="406">Repositories — data access</text>
+      <text class="t-mut" x="58" y="426">explicit select/include shapes — raw models never leak</text>
+      <text class="t-mut" x="58" y="442">src/server/repositories · only layer importing Prisma</text>
+
+      <line class="edge-acc" x1="270" y1="460" x2="270" y2="492" marker-end="url(#arr-acc)"/>
+
+      <!-- DB -->
+      <rect class="box" x="40" y="494" width="460" height="42" rx="8"/>
+      <text class="t-title" x="58" y="520">Prisma 7 (pg adapter) → PostgreSQL (Neon)</text>
+
+      <!-- forbidden edge -->
+      <path class="edge-danger" d="M 502 172 C 660 210, 660 380, 502 420" stroke-dasharray="5 4" marker-end="url(#arr-red)" opacity="0.7"/>
+      <text class="t-body t-danger" x="638" y="288">✕ routes never</text>
+      <text class="t-body t-danger" x="638" y="305">import Prisma</text>
+    </svg>
+    </div>
+    <figcaption><span class="fig-n">Fig 1</span>Dependency direction is strictly downward. Services receive repositories and a <code>runInTransaction</code> as parameters, which is what makes the 39 unit tests run without a database.</figcaption>
+  </figure>
+
+  <h3>Why this shape</h3>
+  <ul>
+    <li><strong>Testability</strong> — business rules (the transfer invariants, the overdue-clearing rule) are plain functions over injected fakes.</li>
+    <li><strong>Blast-radius control</strong> — Prisma is confined to one layer; HTTP is confined to another. Swapping either touches one directory.</li>
+    <li><strong>One schema, both sides</strong> — <code>src/lib/schemas/</code> zod schemas are parsed by the API and used as form resolvers, so client and server can't drift.</li>
+  </ul>
+</section>
+
+<section id="lifecycle">
+  <h2><span class="num">03</span>Request lifecycle &amp; error model</h2>
+  <p>Every route handler body is wrapped in <code>handleRoute()</code>. Success returns <code>{ data }</code>; every failure — thrown from any layer — is translated into one envelope shape at one place:</p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg viewBox="0 0 760 330" role="img" aria-label="Error mapping flow: request through handleRoute to typed responses">
+      <!-- request -->
+      <rect class="box" x="16" y="126" width="150" height="56" rx="8"/>
+      <text class="t-title" x="34" y="150">Request</text>
+      <text class="t-mut" x="34" y="168">PATCH /api/users/:id</text>
+
+      <line class="edge" x1="166" y1="154" x2="216" y2="154" marker-end="url(#arr)"/>
+
+      <!-- handleRoute -->
+      <rect class="box box-accent" x="218" y="110" width="200" height="88" rx="8"/>
+      <text class="t-title" x="238" y="138">handleRoute(fn)</text>
+      <text class="t-mut" x="238" y="158">try { fn(req, ctx) }</text>
+      <text class="t-mut" x="238" y="176">catch → classify</text>
+
+      <!-- outcomes -->
+      <line class="edge" x1="418" y1="126" x2="486" y2="46" marker-end="url(#arr)"/>
+      <rect class="box" x="490" y="20" width="254" height="48" rx="8"/>
+      <text class="t-body t-ok" x="506" y="40">200/201 · { data: … }</text>
+      <text class="t-mut" x="506" y="57">happy path</text>
+
+      <line class="edge" x1="418" y1="142" x2="486" y2="106" marker-end="url(#arr)"/>
+      <rect class="box" x="490" y="82" width="254" height="48" rx="8"/>
+      <text class="t-body t-warn" x="506" y="102">400 · VALIDATION (+ fieldErrors)</text>
+      <text class="t-mut" x="506" y="119">ZodError / ValidationError</text>
+
+      <line class="edge" x1="418" y1="158" x2="486" y2="168" marker-end="url(#arr)"/>
+      <rect class="box" x="490" y="144" width="254" height="48" rx="8"/>
+      <text class="t-body t-warn" x="506" y="164">404 · NOT_FOUND</text>
+      <text class="t-mut" x="506" y="181">NotFoundError('User', id)</text>
+
+      <line class="edge" x1="418" y1="174" x2="486" y2="230" marker-end="url(#arr)"/>
+      <rect class="box" x="490" y="206" width="254" height="48" rx="8"/>
+      <text class="t-body t-warn" x="506" y="226">409 · CONFLICT (+ fieldErrors)</text>
+      <text class="t-mut" x="506" y="243">ConflictError — dup email/plate, sub races</text>
+
+      <line class="edge" x1="418" y1="190" x2="486" y2="292" marker-end="url(#arr)"/>
+      <rect class="box" x="490" y="268" width="254" height="48" rx="8"/>
+      <text class="t-body t-danger" x="506" y="288">500 · INTERNAL (generic message)</text>
+      <text class="t-mut" x="506" y="305">unknown — logged server-side, never leaked</text>
+
+      <!-- client note -->
+      <rect class="box-ghost" x="16" y="218" width="402" height="98" rx="8"/>
+      <text class="t-title" x="34" y="244">Client side of the contract</text>
+      <text class="t-body" x="34" y="266">api&lt;T&gt;() throws ApiError { status, code, fieldErrors }</text>
+      <text class="t-mut" x="34" y="286">fieldErrors → RHF setError under the exact input;</text>
+      <text class="t-mut" x="34" y="304">other errors → dialog Alert or snackbar</text>
+    </svg>
+    </div>
+    <figcaption><span class="fig-n">Fig 2</span>One translation point. Services throw typed <code>DomainError</code>s with no HTTP knowledge; the wrapper owns status codes, and the client's <code>ApiError</code> mirrors the envelope so field errors land under the right form input.</figcaption>
+  </figure>
+</section>
+
+<section id="data-model">
+  <h2><span class="num">04</span>Data model</h2>
+  <p>Six models, four enums. The two deliberate moves: <strong>Subscription.vehicleId is mutable</strong> (a transfer is an in-place pointer update, so plan and billing history survive), and <strong>SubscriptionTransfer</strong> is an append-only audit table written in the same transaction.</p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg viewBox="0 0 760 440" role="img" aria-label="Entity relationship diagram of the six models">
+      <!-- User -->
+      <rect class="box" x="16" y="20" width="196" height="128" rx="8"/>
+      <text class="t-title" x="32" y="44">User</text>
+      <line class="field-line" x1="16" y1="54" x2="212" y2="54"/>
+      <text class="t-body" x="32" y="72">email <tspan class="t-acc">unique</tspan></text>
+      <text class="t-body" x="32" y="90">name · phone</text>
+      <text class="t-body" x="32" y="108">status <tspan class="t-mut">ACTIVE|OVERDUE|CANCELLED</tspan></text>
+      <text class="t-body" x="32" y="126">paymentMethodBrand/Last4?</text>
+
+      <!-- Vehicle -->
+      <rect class="box" x="300" y="20" width="196" height="110" rx="8"/>
+      <text class="t-title" x="316" y="44">Vehicle</text>
+      <line class="field-line" x1="300" y1="54" x2="496" y2="54"/>
+      <text class="t-body" x="316" y="72">userId <tspan class="t-mut">FK</tspan></text>
+      <text class="t-body" x="316" y="90">licensePlate <tspan class="t-acc">unique</tspan></text>
+      <text class="t-body" x="316" y="108">make · model · year · color</text>
+
+      <!-- Plan -->
+      <rect class="box" x="580" y="20" width="164" height="92" rx="8"/>
+      <text class="t-title" x="596" y="44">Plan</text>
+      <line class="field-line" x1="580" y1="54" x2="744" y2="54"/>
+      <text class="t-body" x="596" y="72">name <tspan class="t-acc">unique</tspan></text>
+      <text class="t-body" x="596" y="90">priceCents · description</text>
+
+      <!-- Subscription -->
+      <rect class="box box-accent" x="300" y="196" width="230" height="146" rx="8"/>
+      <text class="t-title" x="316" y="220">Subscription</text>
+      <line class="field-line" x1="300" y1="230" x2="530" y2="230"/>
+      <text class="t-body" x="316" y="248">userId <tspan class="t-mut">FK</tspan> · planId <tspan class="t-mut">FK</tspan></text>
+      <text class="t-body" x="316" y="266">vehicleId <tspan class="t-warn">FK · mutable — transfer</tspan></text>
+      <text class="t-body" x="316" y="284">status <tspan class="t-mut">ACTIVE|PAUSED|OVERDUE|CANC.</tspan></text>
+      <text class="t-body" x="316" y="302">startedAt · cancelledAt?</text>
+      <text class="t-body" x="316" y="320">nextBillingDate?</text>
+
+      <!-- SubscriptionTransfer -->
+      <rect class="box" x="580" y="220" width="164" height="110" rx="8"/>
+      <text class="t-title" x="596" y="244">SubscriptionTransfer</text>
+      <line class="field-line" x1="580" y1="254" x2="744" y2="254"/>
+      <text class="t-body" x="596" y="272">subscriptionId <tspan class="t-mut">FK</tspan></text>
+      <text class="t-body" x="596" y="290">fromVehicleId <tspan class="t-mut">FK</tspan></text>
+      <text class="t-body" x="596" y="308">toVehicleId <tspan class="t-mut">FK</tspan></text>
+      <text class="t-body" x="596" y="326">transferredAt</text>
+
+      <!-- Purchase -->
+      <rect class="box" x="16" y="250" width="212" height="146" rx="8"/>
+      <text class="t-title" x="32" y="274">Purchase</text>
+      <line class="field-line" x1="16" y1="284" x2="228" y2="284"/>
+      <text class="t-body" x="32" y="302">userId <tspan class="t-mut">FK</tspan> · subscriptionId?</text>
+      <text class="t-body" x="32" y="320">type <tspan class="t-mut">WASH|SUB_PAYMENT</tspan></text>
+      <text class="t-body" x="32" y="338">status <tspan class="t-mut">PAID|FAILED|REFUNDED</tspan></text>
+      <text class="t-body" x="32" y="356">amountCents · description</text>
+      <text class="t-body" x="32" y="374">failureReason? <tspan class="t-warn">→ overdue banner</tspan></text>
+
+      <!-- edges -->
+      <line class="edge" x1="212" y1="60" x2="300" y2="60" marker-end="url(#arr)"/>
+      <text class="t-mut" x="238" y="52">1 ⟶ *</text>
+
+      <line class="edge" x1="122" y1="148" x2="122" y2="250" marker-end="url(#arr)"/>
+      <text class="t-mut" x="132" y="204">1 ⟶ *</text>
+
+      <path class="edge" d="M 180 148 C 220 196, 250 220, 300 244" marker-end="url(#arr)"/>
+      <text class="t-mut" x="212" y="206">1 ⟶ *</text>
+
+      <line class="edge-acc" x1="400" y1="130" x2="400" y2="196" marker-end="url(#arr-acc)"/>
+      <text class="t-body t-acc" x="410" y="152">1 ⟶ * </text>
+      <text class="t-body t-warn" x="410" y="170">≤1 non-cancelled</text>
+      <text class="t-body t-warn" x="410" y="186">(service-enforced)</text>
+
+      <path class="edge" d="M 660 112 C 660 150, 600 170, 540 200 L 530 206" marker-end="url(#arr)"/>
+      <text class="t-mut" x="620" y="166">1 ⟶ *</text>
+
+      <line class="edge" x1="530" y1="272" x2="580" y2="272" marker-end="url(#arr)"/>
+      <text class="t-mut" x="540" y="264">1 ⟶ *</text>
+
+      <path class="edge" d="M 300 320 C 270 330, 250 336, 228 344" marker-end="url(#arr)"/>
+      <text class="t-mut" x="248" y="326">1 ⟶ *</text>
+    </svg>
+    </div>
+    <figcaption><span class="fig-n">Fig 3</span>ERD. Highlighted: the mutable <code>vehicleId</code> pointer and the one-non-cancelled-sub-per-vehicle invariant. Indexes: <code>User(name)</code>, <code>User(status)</code>, <code>Vehicle(userId)</code>, <code>Subscription(userId)</code>, <code>Subscription(vehicleId)</code>, <code>Purchase(userId, createdAt DESC)</code>.</figcaption>
+  </figure>
+
+  <p><strong>Overdue modeling.</strong> OVERDUE is not free-floating state: it's caused by a FAILED <code>SUBSCRIPTION_PAYMENT</code> purchase carrying a human-readable <code>failureReason</code>. The user-detail endpoint includes the latest FAILED purchase so the banner ("payment failed on {date}: {reason}") renders in one round trip. Cancelling a user's last OVERDUE subscription flips the account back to ACTIVE in the same transaction.</p>
+</section>
+
+<section id="rules">
+  <h2><span class="num">05</span>Business rules &amp; the transfer flow</h2>
+  <p>The service layer owns five rules; all multi-write rules run inside <code>prisma.$transaction</code>:</p>
+  <div class="table-scroll"><table>
+    <thead><tr><th>Operation</th><th>Rules enforced</th><th>Transaction writes</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Create subscription</strong></td><td>vehicle belongs to user (400) · vehicle has no non-cancelled sub (409)</td><td>subscription + initial PAID purchase</td></tr>
+      <tr><td><strong>Transfer</strong></td><td>sub not cancelled (409) · target ≠ current vehicle (400) · target belongs to same user (400) · target has no non-cancelled sub (409)</td><td><code>vehicleId</code> update + audit row</td></tr>
+      <tr><td><strong>Cancel subscription</strong></td><td>not already cancelled (409)</td><td>set CANCELLED + <code>cancelledAt</code>; flip user OVERDUE → ACTIVE if that was the last overdue sub</td></tr>
+      <tr><td><strong>Cancel account</strong></td><td>idempotent — cancelling a cancelled user returns current state</td><td>user → CANCELLED + cancel all non-cancelled subs</td></tr>
+      <tr><td><strong>Update account / add vehicle</strong></td><td>unique email / plate → 409 with a field error; DB unique constraint + P2002 translation as the race-safe backstop</td><td>single update</td></tr>
+    </tbody>
+  </table></div>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg viewBox="0 0 760 500" role="img" aria-label="Sequence diagram of the subscription transfer flow">
+      <!-- lifeline headers -->
+      <rect class="box" x="16" y="16" width="150" height="44" rx="8"/>
+      <text class="t-title" x="34" y="43">TransferDialog</text>
+      <rect class="box" x="216" y="16" width="150" height="44" rx="8"/>
+      <text class="t-title" x="234" y="36">Route Handler</text>
+      <text class="t-mut" x="234" y="52">…/transfer/route.ts</text>
+      <rect class="box" x="416" y="16" width="160" height="44" rx="8"/>
+      <text class="t-title" x="434" y="36">subscription.service</text>
+      <text class="t-mut" x="434" y="52">transfer()</text>
+      <rect class="box" x="626" y="16" width="118" height="44" rx="8"/>
+      <text class="t-title" x="644" y="43">Postgres</text>
+
+      <!-- lifelines -->
+      <line class="lifeline" x1="91" y1="60" x2="91" y2="484"/>
+      <line class="lifeline" x1="291" y1="60" x2="291" y2="484"/>
+      <line class="lifeline" x1="496" y1="60" x2="496" y2="484"/>
+      <line class="lifeline" x1="685" y1="60" x2="685" y2="484"/>
+
+      <!-- messages -->
+      <line class="edge" x1="91" y1="92" x2="291" y2="92" marker-end="url(#arr)"/>
+      <text class="t-body" x="104" y="84">POST { toVehicleId }</text>
+
+      <line class="edge" x1="291" y1="128" x2="496" y2="128" marker-end="url(#arr)"/>
+      <text class="t-body" x="304" y="120">zod parse → transfer(subId, toVehicleId)</text>
+
+      <!-- guards -->
+      <rect class="box-ghost" x="430" y="148" width="240" height="106" rx="8"/>
+      <text class="t-title" x="446" y="170">Guards (pre-transaction reads)</text>
+      <text class="t-body" x="446" y="190">sub exists &amp; not CANCELLED</text>
+      <text class="t-body" x="446" y="208">target ≠ current vehicle</text>
+      <text class="t-body" x="446" y="226">target belongs to same user</text>
+      <text class="t-body" x="446" y="244">target has no non-cancelled sub</text>
+
+      <!-- tx -->
+      <rect class="box box-accent" x="446" y="276" width="298" height="96" rx="8"/>
+      <text class="t-title t-acc" x="462" y="300">$transaction</text>
+      <text class="t-body" x="462" y="322">1 · UPDATE Subscription SET vehicleId = to</text>
+      <text class="t-body" x="462" y="342">2 · INSERT SubscriptionTransfer</text>
+      <text class="t-mut" x="462" y="361">(from, to, transferredAt) — audit row</text>
+
+      <!-- returns -->
+      <line class="edge" x1="496" y1="396" x2="291" y2="396" marker-end="url(#arr)"/>
+      <text class="t-body" x="304" y="388">updated subscription</text>
+      <line class="edge" x1="291" y1="426" x2="91" y2="426" marker-end="url(#arr)"/>
+      <text class="t-body t-ok" x="104" y="418">200 { data } → invalidate ['user', id], ['users']</text>
+
+      <!-- error branch -->
+      <line class="edge-danger" x1="496" y1="458" x2="91" y2="458" marker-end="url(#arr-red)" stroke-dasharray="5 4"/>
+      <text class="t-body t-danger" x="104" y="450">any guard fails → 409/400 — Alert inside the dialog, stays open</text>
+    </svg>
+    </div>
+    <figcaption><span class="fig-n">Fig 4</span>Transfer sequence. The dialog's client-side eligibility (disabled vehicles) is UX only — the server re-validates every rule, so a race with another CSR tab surfaces as a clean in-dialog 409, not a crash.</figcaption>
+  </figure>
+
+</section>
+
+<section id="api">
+  <h2><span class="num">06</span>API surface</h2>
+  <p>REST under <code>/api</code>, JSON envelope everywhere.</p>
+  <div class="table-scroll"><table>
+    <thead><tr><th>Method</th><th>Path</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>GET</td><td><code>/api/users</code></td><td>Paginated list — <code>search</code> ORs name/email/phone/plate (case-insensitive), <code>status</code> filter, <code>sort=field:dir</code></td></tr>
+      <tr><td>GET</td><td><code>/api/users/stats</code></td><td>Account-status counts (stat strip)</td></tr>
+      <tr><td>GET / PATCH</td><td><code>/api/users/[id]</code></td><td>Full detail — vehicles + subs (plan, vehicle, transfers) + latest FAILED purchase, one round trip / edit account</td></tr>
+      <tr><td>POST</td><td><code>/api/users/[id]/cancel</code></td><td>Cancel account + cascade; idempotent</td></tr>
+      <tr><td>GET</td><td><code>/api/users/[id]/purchases</code></td><td>Paginated history, newest first</td></tr>
+      <tr><td>POST</td><td><code>/api/users/[id]/vehicles</code></td><td>Add vehicle; duplicate plate → 409 field error</td></tr>
+      <tr><td>PATCH / DELETE</td><td><code>/api/vehicles/[id]</code></td><td>Edit / remove; 409 if a non-cancelled sub exists</td></tr>
+      <tr><td>POST</td><td><code>/api/users/[id]/subscriptions</code></td><td>Create sub + initial PAID purchase (one tx)</td></tr>
+      <tr><td>POST</td><td><code>/api/subscriptions/[id]/cancel</code></td><td>Cancel; clears user OVERDUE if last overdue sub</td></tr>
+      <tr><td>POST</td><td><code>/api/subscriptions/[id]/transfer</code></td><td>Transfer + audit row (one tx)</td></tr>
+      <tr><td>GET</td><td><code>/api/plans</code></td><td>Seeded plans for the add-subscription form</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="frontend">
+  <h2><span class="num">07</span>Frontend design</h2>
+  <p>Client-side React Query against the API — the right default for an interactive internal tool (search-as-you-type, dialog mutations, cache invalidation); server components are thin shells.</p>
+  <ul>
+    <li><strong>/users</strong> — DataGrid in full server mode (pagination, sorting), 300&nbsp;ms debounced search, status filter. <strong>All list state lives in the URL</strong>, so views are shareable and back/refresh-safe. <code>keepPreviousData</code> keeps paging smooth.</li>
+    <li><strong>/users/[id]</strong> — stacked scannable cards rather than tabs: a CSR on a call needs everything visible. Header (status chip, Cancel Account), OVERDUE banner, account card + edit dialog, subscriptions (add / cancel / transfer + history), vehicles, purchases.</li>
+    <li><strong>Cache strategy</strong> — two key families: <code>['users', params]</code> (list) and <code>['user', id]</code> (detail) + <code>['purchases', id, page]</code>. Every mutation invalidates <code>['user', id]</code> <em>and</em> <code>['users']</code>, because account status (ACTIVE/OVERDUE) derives from subscriptions — the list chip must update too.</li>
+    <li><strong>Forms</strong> — react-hook-form with the same zod schemas the API parses. Server <code>fieldErrors</code> map back via <code>setError</code> under the exact input; non-field errors go to a dialog Alert or snackbar. Buttons disable while mutations are pending.</li>
+    <li><strong>Failure states</strong> — every section has a skeleton, an empty state, and an Alert-with-retry; route-level <code>error.tsx</code> and <code>not-found.tsx</code> catch the rest.</li>
+  </ul>
+</section>
+
+<section id="cicd">
+  <h2><span class="num">08</span>CI/CD &amp; deployment</h2>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg viewBox="0 0 760 300" role="img" aria-label="CI/CD pipeline: PR checks, merge, migration job, Vercel deploy, smoke check">
+      <!-- PR lane -->
+      <text class="t-mut" x="16" y="34">PULL REQUEST</text>
+      <rect class="box" x="16" y="44" width="120" height="48" rx="8"/>
+      <text class="t-title" x="32" y="64">git push</text>
+      <text class="t-mut" x="32" y="82">feature branch</text>
+
+      <line class="edge" x1="136" y1="68" x2="182" y2="68" marker-end="url(#arr)"/>
+
+      <rect class="box" x="184" y="44" width="332" height="48" rx="8"/>
+      <text class="t-title" x="200" y="64">CI — GitHub Actions</text>
+      <text class="t-mut" x="200" y="82">install → prisma generate → lint → typecheck → test → build</text>
+
+      <line class="edge" x1="516" y1="68" x2="562" y2="68" marker-end="url(#arr)"/>
+
+      <rect class="box" x="564" y="44" width="180" height="48" rx="8"/>
+      <text class="t-title" x="580" y="64">Vercel preview</text>
+      <text class="t-mut" x="580" y="82">per-PR deploy</text>
+
+      <!-- merge -->
+      <line class="edge-acc" x1="76" y1="92" x2="76" y2="140" marker-end="url(#arr-acc)"/>
+      <text class="t-body t-acc" x="88" y="122">merge (CI required green)</text>
+
+      <!-- main lane -->
+      <text class="t-mut" x="16" y="134">MAIN</text>
+      <rect class="box" x="16" y="142" width="120" height="48" rx="8"/>
+      <text class="t-title" x="32" y="162">push to main</text>
+
+      <line class="edge" x1="136" y1="166" x2="182" y2="166" marker-end="url(#arr)"/>
+
+      <rect class="box" x="184" y="142" width="150" height="48" rx="8"/>
+      <text class="t-title" x="200" y="162">CI (again)</text>
+      <text class="t-mut" x="200" y="180">same gate</text>
+
+      <line class="edge" x1="334" y1="166" x2="380" y2="166" marker-end="url(#arr)"/>
+
+      <rect class="box box-accent" x="382" y="142" width="180" height="48" rx="8"/>
+      <text class="t-title" x="398" y="162">prisma migrate deploy</text>
+      <text class="t-mut" x="398" y="180">→ Neon (direct string)</text>
+
+      <line class="edge" x1="562" y1="166" x2="608" y2="166" marker-end="url(#arr)"/>
+
+      <rect class="box" x="610" y="142" width="134" height="48" rx="8"/>
+      <text class="t-title" x="626" y="162">smoke check</text>
+      <text class="t-mut" x="626" y="180">curl -f /api/plans</text>
+
+      <!-- vercel prod, parallel -->
+      <path class="edge" d="M 76 190 C 76 232, 160 244, 220 248" marker-end="url(#arr)"/>
+      <rect class="box" x="224" y="226" width="250" height="48" rx="8"/>
+      <text class="t-title" x="240" y="246">Vercel production deploy</text>
+      <text class="t-mut" x="240" y="264">Git integration — parallel to Actions</text>
+      <text class="t-mut" x="490" y="252">DATABASE_URL = Neon</text>
+      <text class="t-mut" x="490" y="268">pooled string</text>
+    </svg>
+    </div>
+    <figcaption><span class="fig-n">Fig 5</span>Two cooperating pipelines: GitHub Actions gates merges and owns migrations; Vercel's Git integration owns deploys. The build needs no live database, so CI runs with a dummy <code>DATABASE_URL</code>.</figcaption>
+  </figure>
+
+  <ul>
+    <li><strong>Connection strings</strong> — the app uses Neon's <em>pooled</em> string (serverless-friendly); migrations use the <em>direct</em> string.</li>
+    <li><strong>Prisma on Vercel</strong> — <code>"postinstall": "prisma generate"</code> defends against Vercel's <code>node_modules</code> caching serving a stale client.</li>
+    <li><strong>Deliberate cut</strong> — preview deploys share the prod database; acceptable for a take-home and documented.</li>
+  </ul>
+</section>
+
+<section id="testing">
+  <h2><span class="num">09</span>Testing strategy</h2>
+  <p><strong>39 unit tests (Vitest), zero database.</strong> Services are factory functions taking repositories and <code>runInTransaction</code> as parameters, so tests pass hand-rolled fakes and assert on business behavior, not SQL:</p>
+  <ul>
+    <li><code>subscription.service.test.ts</code> — the flagship: transfer happy path (asserts the <code>vehicleId</code> update <em>and</em> the audit insert happen in the same tx), target-already-subscribed 409, cross-owner 400, cancelled-sub 409, and cancel-clears-user-OVERDUE.</li>
+    <li><code>user.service.test.ts</code> — duplicate-email conflict (including the P2002 race backstop), cancel cascade, not-found, list param passthrough.</li>
+    <li><code>vehicle.service.test.ts</code> — duplicate plate, delete-with-live-sub 409.</li>
+    <li><code>api-helpers.test.ts</code> — the error → status envelope mapping.</li>
+  </ul>
+  <p>Above unit level: CI runs typecheck + build on every PR, the post-deploy smoke check exercises the live API, and the README's demo walkthrough doubles as a manual e2e script mapped to the four call scenarios. A Playwright suite is the next investment (§10).</p>
+</section>
+
+</main>
+</body>
+</html>
